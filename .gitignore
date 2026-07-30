@@ -37,6 +37,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# design handoff reference material — not source, not committed
+/design-handoff
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
