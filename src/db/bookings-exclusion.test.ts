@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createDb } from "./client";
+import { mapPostgresError } from "./errors";
 import { resources } from "./schema";
 
 const db = createDb(process.env.TEST_DATABASE_URL!);
@@ -77,6 +78,26 @@ describe("bookings_no_overlap exclusion constraint", () => {
     await expect(
       insertBooking(db, resourceId, "[2026-08-10 10:30+00,2026-08-10 11:30+00)"),
     ).rejects.toMatchObject({ cause: { code: "23P01" } });
+  });
+
+  it("maps the real 23P01 error to a user-facing message", async () => {
+    const resourceId = await insertResource();
+    await insertBooking(
+      db,
+      resourceId,
+      "[2026-08-10 10:00+00,2026-08-10 11:00+00)",
+    );
+    let caught: unknown;
+    try {
+      await insertBooking(
+        db,
+        resourceId,
+        "[2026-08-10 10:30+00,2026-08-10 11:30+00)",
+      );
+    } catch (error) {
+      caught = error;
+    }
+    expect(mapPostgresError(caught)).toBe("That slot was just taken.");
   });
 
   it("allows adjacent, non-overlapping bookings", async () => {
