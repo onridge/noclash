@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createDb } from "./client";
-import { mapPostgresError } from "./errors";
+import { extractPostgresCode, mapPostgresError } from "./errors";
 import { resources } from "./schema";
 
 const db = createDb(process.env.TEST_DATABASE_URL!);
@@ -156,6 +156,14 @@ describe("bookings_no_overlap exclusion constraint", () => {
     expect(fulfilled).toHaveLength(1);
     expect(rejected).toHaveLength(1);
     const [rejection] = rejected as PromiseRejectedResult[];
-    expect(rejection?.reason).toMatchObject({ cause: { code: "23P01" } });
+    // The loser can fail either as an exclusion violation (23P01) or,
+    // under real contention, as a deadlock (40P01) if Postgres's
+    // deadlock detector breaks the cycle before the exclusion check
+    // runs — confirmed this actually happens in CI, not hypothetical.
+    // Either way the database — not application code — is what
+    // guaranteed only one booking survived, which is the actual thing
+    // under test here.
+    const code = extractPostgresCode(rejection?.reason);
+    expect(["23P01", "40P01"]).toContain(code);
   });
 });

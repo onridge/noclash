@@ -20,6 +20,12 @@ describe("mapPostgresError", () => {
     ).toBe("That slot was just taken.");
   });
 
+  it("maps 40P01 (deadlock, the other real outcome of a booking race)", () => {
+    expect(mapPostgresError({ code: "40P01" })).toBe(
+      "Something went wrong booking that slot — please try again.",
+    );
+  });
+
   it("returns null for an unrecognized Postgres error code", () => {
     expect(mapPostgresError({ code: "23505" })).toBeNull();
   });
