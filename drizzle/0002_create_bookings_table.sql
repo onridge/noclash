@@ -1,6 +1,6 @@
 -- tstzrange has no native column-type support in Drizzle's schema
 -- builder, so this table is hand-written raw SQL rather than
--- drizzle-kit generate. See CLAUDE.md hard rule 1.
+-- drizzle-kit generate.
 --
 -- user_id is a plain uuid with no FK for now, same reasoning as
 -- resources.owner_id: auth.users doesn't exist until Phase 3.

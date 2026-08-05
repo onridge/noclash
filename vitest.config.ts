@@ -1,7 +1,15 @@
+import { fileURLToPath } from "node:url";
 import "dotenv/config";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  resolve: {
+    // Vitest doesn't read tsconfig.json's `paths` — only Next.js/tsc do.
+    // Mirrors the single "@/*" -> "./src/*" alias from tsconfig.json.
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
+  },
   test: {
     globalSetup: "./src/test/global-setup.ts",
     setupFiles: "./src/test/setup.ts",
