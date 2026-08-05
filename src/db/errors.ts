@@ -10,6 +10,9 @@ const POSTGRES_ERROR_MESSAGES: Record<string, string> = {
   // hypothetical). Unlike 23P01 this doesn't mean the slot is taken —
   // it's a transient contention error, so the message says retry.
   "40P01": "Something went wrong booking that slot — please try again.",
+  // Reachable from createBooking: the resource could have been deleted
+  // between the client loading it and submitting the booking.
+  "23503": "That resource no longer exists.",
 };
 
 // The driver (postgres.js) throws PostgresError with `.code` directly;
