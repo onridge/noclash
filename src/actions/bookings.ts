@@ -6,9 +6,7 @@ import { createDb, db } from "@/db/client";
 import { mapPostgresError } from "@/db/errors";
 
 // startsAt/endsAt require an explicit UTC offset (or Z) — the client
-// must send an unambiguous instant, never local wall-clock time. See
-// CLAUDE.md hard rule 3: no time math in the browser for
-// correctness-critical paths.
+// must send an unambiguous instant, never local wall-clock time.
 const createBookingSchema = z
   .object({
     resourceId: z.string().uuid(),

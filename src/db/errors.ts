@@ -1,5 +1,5 @@
 // Postgres SQLSTATE -> user-facing message. Only codes with an actual
-// UI-facing meaning belong here — see CLAUDE.md conventions.
+// UI-facing meaning belong here.
 const POSTGRES_ERROR_MESSAGES: Record<string, string> = {
   "23P01": "That slot was just taken.", // exclusion_violation
   // Two people racing to book the same slot can also resolve as a

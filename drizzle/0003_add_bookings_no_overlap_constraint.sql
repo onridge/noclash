@@ -3,7 +3,7 @@
 -- generated-column expression (tstzrange(lower(during) - interval,
 -- upper(during) + interval)) is rejected by Postgres because interval
 -- arithmetic on timestamptz is STABLE, not IMMUTABLE — it depends on
--- the session timezone for DST-crossing cases. See CLAUDE.md.
+-- the session timezone for DST-crossing cases.
 --
 -- No backfill statement here: this migration always runs immediately
 -- after bookings is created (migration 0002), in every environment,
