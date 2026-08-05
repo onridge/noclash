@@ -22,6 +22,19 @@ const createBookingSchema = z
 
 export type CreateBookingInput = z.input<typeof createBookingSchema>;
 
+const listBookingsSchema = z
+  .object({
+    resourceId: z.string().uuid(),
+    from: z.iso.datetime({ offset: true }),
+    to: z.iso.datetime({ offset: true }),
+  })
+  .refine((data) => new Date(data.to) > new Date(data.from), {
+    message: "to must be after from",
+    path: ["to"],
+  });
+
+export type ListBookingsInput = z.input<typeof listBookingsSchema>;
+
 interface BookingRow extends Record<string, unknown> {
   id: string;
   resource_id: string;
@@ -36,19 +49,34 @@ interface BookingRow extends Record<string, unknown> {
   notes: string | null;
 }
 
+export interface BookingDto {
+  id: string;
+  resourceId: string;
+  userId: string;
+  startsAt: Date;
+  endsAt: Date;
+  status: string;
+  notes: string | null;
+}
+
+function mapBookingRow(row: BookingRow): BookingDto {
+  return {
+    id: row.id,
+    resourceId: row.resource_id,
+    userId: row.user_id,
+    startsAt: new Date(row.starts_at),
+    endsAt: new Date(row.ends_at),
+    status: row.status,
+    notes: row.notes,
+  };
+}
+
 export type CreateBookingResult =
-  | {
-      success: true;
-      booking: {
-        id: string;
-        resourceId: string;
-        userId: string;
-        startsAt: Date;
-        endsAt: Date;
-        status: string;
-        notes: string | null;
-      };
-    }
+  | { success: true; booking: BookingDto }
+  | { success: false; error: string };
+
+export type ListBookingsResult =
+  | { success: true; bookings: BookingDto[] }
   | { success: false; error: string };
 
 // `client` defaults to the app's shared connection but can be overridden
@@ -95,24 +123,60 @@ export async function createBooking(
         error: "Something went wrong creating that booking.",
       };
     }
-    return {
-      success: true,
-      booking: {
-        id: row.id,
-        resourceId: row.resource_id,
-        userId: row.user_id,
-        startsAt: new Date(row.starts_at),
-        endsAt: new Date(row.ends_at),
-        status: row.status,
-        notes: row.notes,
-      },
-    };
+    return { success: true, booking: mapBookingRow(row) };
   } catch (error) {
     return {
       success: false,
       error:
         mapPostgresError(error) ??
         "Something went wrong creating that booking.",
+    };
+  }
+}
+
+// Bookings whose range overlaps [from, to) at all, not just ones fully
+// contained in it — matches calendar-view semantics (a booking that
+// starts before the window and ends inside it should still show up),
+// and uses the same && overlap operator the exclusion constraint itself
+// relies on. Cancelled bookings are excluded: this reflects what's
+// actually occupying the resource, not a change history.
+export async function listBookings(
+  input: unknown,
+  client: ReturnType<typeof createDb> = db,
+): Promise<ListBookingsResult> {
+  const parsed = listBookingsSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid date window.",
+    };
+  }
+
+  const { resourceId, from, to } = parsed.data;
+
+  try {
+    const rows = await client.execute<BookingRow>(sql`
+      SELECT
+        id,
+        resource_id,
+        user_id,
+        lower(during) AS starts_at,
+        upper(during) AS ends_at,
+        status,
+        notes
+      FROM bookings
+      WHERE resource_id = ${resourceId}
+        AND status = 'confirmed'
+        AND during && tstzrange(${from}::timestamptz, ${to}::timestamptz, '[)')
+      ORDER BY lower(during) ASC
+    `);
+    return { success: true, bookings: rows.map(mapBookingRow) };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        mapPostgresError(error) ??
+        "Something went wrong loading bookings for that resource.",
     };
   }
 }
