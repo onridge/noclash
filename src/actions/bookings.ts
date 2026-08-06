@@ -180,3 +180,44 @@ export async function listBookings(
     };
   }
 }
+
+export type BookingFormState =
+  | { status: "idle" }
+  | { status: "success"; booking: BookingDto }
+  | { status: "error"; error: string };
+
+const formValue = (formData: FormData, key: string) => {
+  const value = formData.get(key);
+
+  return typeof value === "string" ? value : "";
+};
+
+export async function createBookingFromForm(
+  _prevState: BookingFormState,
+  formData: FormData,
+  client: ReturnType<typeof createDb> = db,
+): Promise<BookingFormState> {
+  const resourceId = formValue(formData, "resourceId");
+  const userId = formValue(formData, "userId");
+  const date = formValue(formData, "date");
+  const startTime = formValue(formData, "startTime");
+  const endTime = formValue(formData, "endTime");
+  const notes = formValue(formData, "notes").trim();
+
+  const result = await createBooking(
+    {
+      resourceId,
+      userId,
+      startsAt: date && startTime ? `${date}T${startTime}:00Z` : "",
+      endsAt: date && endTime ? `${date}T${endTime}:00Z` : "",
+      notes: notes ? notes : undefined,
+    },
+    client,
+  );
+
+  if (!result.success) {
+    return { status: "error", error: result.error };
+  }
+
+  return { status: "success", booking: result.booking };
+}

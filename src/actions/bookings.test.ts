@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { createBooking, listBookings } from "./bookings";
+import { createBooking, createBookingFromForm, listBookings } from "./bookings";
 import { createDb } from "@/db/client";
 import { resources } from "@/db/schema";
 
@@ -280,6 +280,135 @@ describe("listBookings", () => {
     expect(result).toMatchObject({
       success: false,
       error: "to must be after from",
+    });
+  });
+});
+
+function buildFormData(fields: Record<string, string | undefined>): FormData {
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(fields)) {
+    if (value !== undefined) formData.set(key, value);
+  }
+  return formData;
+}
+
+describe("createBookingFromForm", () => {
+  it("creates a booking from valid form fields", async () => {
+    const resourceId = await insertResource();
+    const userId = randomUUID();
+    const formData = buildFormData({
+      resourceId,
+      userId,
+      date: "2026-08-10",
+      startTime: "10:00",
+      endTime: "11:00",
+      notes: "Full band rehearsal",
+    });
+
+    const result = await createBookingFromForm(
+      { status: "idle" },
+      formData,
+      testDb,
+    );
+
+    expect(result.status).toBe("success");
+    if (result.status !== "success") throw new Error("expected success");
+    expect(result.booking.resourceId).toBe(resourceId);
+    expect(result.booking.userId).toBe(userId);
+    expect(result.booking.notes).toBe("Full band rehearsal");
+    expect(result.booking.startsAt.toISOString()).toBe(
+      "2026-08-10T10:00:00.000Z",
+    );
+    expect(result.booking.endsAt.toISOString()).toBe(
+      "2026-08-10T11:00:00.000Z",
+    );
+  });
+
+  it("treats a blank notes field as no notes", async () => {
+    const resourceId = await insertResource();
+    const formData = buildFormData({
+      resourceId,
+      userId: randomUUID(),
+      date: "2026-08-10",
+      startTime: "10:00",
+      endTime: "11:00",
+      notes: "",
+    });
+
+    const result = await createBookingFromForm(
+      { status: "idle" },
+      formData,
+      testDb,
+    );
+
+    expect(result.status).toBe("success");
+    if (result.status !== "success") throw new Error("expected success");
+    expect(result.booking.notes).toBeNull();
+  });
+
+  it("returns an error for an invalid userId", async () => {
+    const resourceId = await insertResource();
+    const formData = buildFormData({
+      resourceId,
+      userId: "not-a-uuid",
+      date: "2026-08-10",
+      startTime: "10:00",
+      endTime: "11:00",
+    });
+
+    const result = await createBookingFromForm(
+      { status: "idle" },
+      formData,
+      testDb,
+    );
+
+    expect(result.status).toBe("error");
+  });
+
+  it("returns an error when a required field is missing", async () => {
+    const resourceId = await insertResource();
+    const formData = buildFormData({
+      resourceId,
+      userId: randomUUID(),
+      date: "2026-08-10",
+      startTime: "10:00",
+      // endTime intentionally omitted
+    });
+
+    const result = await createBookingFromForm(
+      { status: "idle" },
+      formData,
+      testDb,
+    );
+
+    expect(result.status).toBe("error");
+  });
+
+  it("returns the friendly overlap message for a real conflict", async () => {
+    const resourceId = await insertResource();
+    await insertBooking(
+      resourceId,
+      "2026-08-10T10:00:00Z",
+      "2026-08-10T11:00:00Z",
+    );
+
+    const formData = buildFormData({
+      resourceId,
+      userId: randomUUID(),
+      date: "2026-08-10",
+      startTime: "10:30",
+      endTime: "11:30",
+    });
+
+    const result = await createBookingFromForm(
+      { status: "idle" },
+      formData,
+      testDb,
+    );
+
+    expect(result).toEqual({
+      status: "error",
+      error: "That slot was just taken.",
     });
   });
 });
