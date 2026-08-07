@@ -11,6 +11,7 @@ import {
   parseDateParam,
   shiftDate,
 } from "@/lib/scheduling/day-window";
+import { BookingForm } from "@/components/booking-form";
 
 export default async function ResourceDetailPage({
   params,
@@ -83,14 +84,14 @@ export default async function ResourceDetailPage({
                 {formatTimeUtc(booking.endsAt)}
               </span>
               {booking.notes && (
-                <span className="text-sm text-ink-muted">
-                  {booking.notes}
-                </span>
+                <span className="text-sm text-ink-muted">{booking.notes}</span>
               )}
             </li>
           ))}
         </ul>
       )}
+
+      <BookingForm resourceId={resource.id} />
     </main>
   );
 }
