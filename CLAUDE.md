@@ -52,7 +52,7 @@ pnpm lint && pnpm typecheck
 
 - One Trello card per session. Start in plan mode (`shift+tab`), agree the approach, then implement.
 - `/clear` between cards so context stays clean.
-- Claude explains the approach and shows guidance/snippets; the user writes the implementation code themselves. Claude writes the tests and verifies the implementation (typecheck/lint/tests, and checking it actually matches what was asked) rather than writing app code directly.
+- Claude explains the approach and shows guidance/snippets; the user writes the implementation code themselves. This extends to operational commands too — Docker, migrations, seeding, git (branch/commit/push/PR) — Claude tells the user the exact commands and what to expect rather than running them. Claude's own job is limited to writing the tests and verifying the implementation (typecheck/lint/tests, and checking it actually matches what was asked); verification assumes the user has already brought up anything it needs (e.g. Docker Postgres).
 - Write the test first for anything in `lib/scheduling/` and for every database constraint.
 - After implementing, run `pnpm lint && pnpm typecheck && pnpm test` before reporting done.
 - Update `DEVELOPMENT_PLAN.md` if a decision changes; it is the source of truth for architecture, not chat history.
