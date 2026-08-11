@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   date,
   integer,
@@ -7,6 +8,7 @@ import {
   text,
   time,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -58,6 +60,30 @@ export const availabilityRules = pgTable(
     check(
       "availability_rules_ends_after_starts",
       sql`${table.endsAt} > ${table.startsAt}`,
+    ),
+  ],
+);
+
+export const availabilityExceptions = pgTable(
+  "availability_exceptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    resourceId: uuid("resource_id")
+      .notNull()
+      .references(() => resources.id, { onDelete: "cascade" }),
+    onDate: date("on_date", { mode: "string" }).notNull(),
+    isClosed: boolean("is_closed").notNull().default(true),
+    startsAt: time("starts_at"),
+    endsAt: time("ends_at"),
+  },
+  (table) => [
+    unique("availability_exceptions_resource_date_unique").on(
+      table.resourceId,
+      table.onDate,
+    ),
+    check(
+      "availability_exceptions_closed_or_has_times",
+      sql`${table.isClosed} OR (${table.startsAt} IS NOT NULL AND ${table.endsAt} IS NOT NULL) `,
     ),
   ],
 );
