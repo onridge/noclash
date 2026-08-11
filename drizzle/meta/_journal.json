@@ -29,6 +29,13 @@
       "when": 1785851454441,
       "tag": "0003_add_bookings_no_overlap_constraint",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786437495331,
+      "tag": "0004_create_availability_rules_table",
+      "breakpoints": true
     }
   ]
 }
