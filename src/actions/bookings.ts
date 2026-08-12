@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { createDb, db } from "@/db/client";
 import { mapPostgresError } from "@/db/errors";
+import { formValue } from "@/lib/form-data";
 
 // startsAt/endsAt require an explicit UTC offset (or Z) — the client
 // must send an unambiguous instant, never local wall-clock time.
@@ -185,12 +186,6 @@ export type BookingFormState =
   | { status: "idle" }
   | { status: "success"; booking: BookingDto }
   | { status: "error"; error: string };
-
-const formValue = (formData: FormData, key: string) => {
-  const value = formData.get(key);
-
-  return typeof value === "string" ? value : "";
-};
 
 export async function createBookingFromForm(
   _prevState: BookingFormState,
