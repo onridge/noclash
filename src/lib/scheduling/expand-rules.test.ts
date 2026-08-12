@@ -158,5 +158,22 @@ describe("expandRules", () => {
         { start: new Date("2026-11-01T05:30:00.000Z"), end: new Date("2026-11-01T07:00:00.000Z") },
       ]);
     });
+
+    it("resolves both boundaries of a rule entirely inside the ambiguous hour to the same side of the transition", () => {
+      // startsAt (01:15) and endsAt (01:45) both fall in the repeated hour.
+      // If they resolved to different sides of the transition, the slot
+      // could come out with end <= start or the wrong duration — a
+      // correctness bug the exclusion constraint wouldn't catch, since the
+      // bad range would never make it to the database in a sane shape.
+      const slots = expandRules(
+        [rule({ weekday: 6, startsAt: "01:15:00", endsAt: "01:45:00" })],
+        "America/New_York",
+        { from: "2026-11-01", to: "2026-11-02" },
+      );
+
+      expect(slots).toEqual([
+        { start: new Date("2026-11-01T05:15:00.000Z"), end: new Date("2026-11-01T05:45:00.000Z") },
+      ]);
+    });
   });
 });
