@@ -51,6 +51,7 @@ pnpm lint && pnpm typecheck
 ## Working style for Claude Code
 
 - One Trello card per session. Start in plan mode (`shift+tab`), agree the approach, then implement.
+- Before starting any task, give the branch name first, as the first line of the response.
 - `/clear` between cards so context stays clean.
 - Claude explains the approach and shows guidance/snippets; the user writes the implementation code themselves. This extends to operational commands too — Docker, migrations, seeding, git (branch/commit/push/PR) — Claude tells the user the exact commands and what to expect rather than running them. Claude's own job is limited to writing the tests and verifying the implementation (typecheck/lint/tests, and checking it actually matches what was asked); verification assumes the user has already brought up anything it needs (e.g. Docker Postgres).
 - Write the test first for anything in `lib/scheduling/` and for every database constraint.
