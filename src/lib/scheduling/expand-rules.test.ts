@@ -118,6 +118,19 @@ describe("expandRules", () => {
       expect(slots).toEqual([]);
     });
 
+    it("skips an occurrence whose end time falls in the spring-forward gap, even though start is valid", () => {
+      // startsAt (01:30) exists that day; endsAt (02:30) doesn't. The whole
+      // occurrence must still be skipped — a half-open slot can't have a
+      // valid start and no valid end.
+      const slots = expandRules(
+        [rule({ weekday: 6, startsAt: "01:30:00", endsAt: "02:30:00" })],
+        "America/New_York",
+        { from: "2026-03-08", to: "2026-03-09" },
+      );
+
+      expect(slots).toEqual([]);
+    });
+
     it("expands the same rule normally on a Sunday without a DST transition", () => {
       // Control case: identical rule, one week earlier, no transition — proves
       // the gap above is caused by DST, not a bug that always skips 02:30.
