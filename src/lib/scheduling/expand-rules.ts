@@ -43,7 +43,11 @@ const tzOffsetMillies = (instant: Date, timeZone: string) => {
   return asUtc - instant.getTime();
 };
 
-const zonedTimeUtc = (dateStr: string, timeStr: string, timeZone: string) => {
+export const zonedTimeUtc = (
+  dateStr: string,
+  timeStr: string,
+  timeZone: string,
+) => {
   const naiveUtc = new Date(`${dateStr}T${timeStr}Z`);
   const offsetA = tzOffsetMillies(naiveUtc, timeZone);
   const offsetB = tzOffsetMillies(
@@ -84,4 +88,8 @@ export const expandRules = (
   }
 
   return slots.sort((a, b) => a.start.getTime() - b.start.getTime());
+};
+
+export const localDateOf = (instant: Date, timeZone: string) => {
+  return formatInTimezone(instant, timeZone).slice(0, 10);
 };
