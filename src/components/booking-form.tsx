@@ -18,9 +18,13 @@ const labelClassName = "flex flex-col gap-1.5 text-xs text-ink-muted";
 export function BookingForm({
   resourceId,
   resourceTimezone,
+  maxAdvanceDays,
+  maxDate,
 }: {
   resourceId: string;
   resourceTimezone: string;
+  maxAdvanceDays: number;
+  maxDate: string;
 }) {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(
@@ -61,10 +65,19 @@ export function BookingForm({
         />
       </label>
 
+      <p className="text-xs text-ink-muted">
+        Bookable up to {maxAdvanceDays} days ahead.
+      </p>
       <div className="flex flex-wrap gap-3">
         <label className={labelClassName}>
           Date
-          <input type="date" name="date" required className={inputClassName} />
+          <input
+            type="date"
+            name="date"
+            max={maxDate}
+            required
+            className={inputClassName}
+          />
         </label>
         <label className={labelClassName}>
           Start (UTC)

@@ -12,6 +12,7 @@ import {
 } from "@/lib/scheduling/day-window";
 import { BookingForm } from "@/components/booking-form";
 import { LocalTimeRange } from "@/components/local-time-range";
+import { advanceWindowCutoff } from "@/lib/scheduling/advance-window";
 
 export default async function ResourceDetailPage({
   params,
@@ -38,6 +39,10 @@ export default async function ResourceDetailPage({
 
   const prevDate = shiftDate(date, -1);
   const nextDate = shiftDate(date, 1);
+
+  const maxDate = advanceWindowCutoff(resource.maxAdvanceDays)
+    .toISOString()
+    .slice(0, 10);
 
   return (
     <main className="px-4 sm:px-6 py-6">
@@ -96,6 +101,8 @@ export default async function ResourceDetailPage({
       <BookingForm
         resourceId={resource.id}
         resourceTimezone={resource.timezone}
+        maxAdvanceDays={resource.maxAdvanceDays}
+        maxDate={maxDate}
       />
     </main>
   );

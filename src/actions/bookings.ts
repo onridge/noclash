@@ -1,10 +1,12 @@
 "use server";
 
-import { sql } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 import { z } from "zod";
 import { createDb, db } from "@/db/client";
 import { mapPostgresError } from "@/db/errors";
 import { formValue } from "@/lib/form-data";
+import { resources } from "@/db/schema";
+import { advanceWindowCutoff } from "@/lib/scheduling/advance-window";
 
 // startsAt/endsAt require an explicit UTC offset (or Z) — the client
 // must send an unambiguous instant, never local wall-clock time.
@@ -98,6 +100,24 @@ export async function createBooking(
   }
 
   const { resourceId, userId, startsAt, endsAt, notes } = parsed.data;
+
+  const [resource] = await client
+    .select({ maxAdvanceDays: resources.maxAdvanceDays })
+    .from(resources)
+    .where(eq(resources.id, parsed.data.resourceId));
+
+  if (!resource) {
+    return { success: false, error: "That resource no longer exists." };
+  }
+
+  const cutoff = advanceWindowCutoff(resource.maxAdvanceDays);
+
+  if (new Date(parsed.data.startsAt) > cutoff) {
+    return {
+      success: false,
+      error: `Booking can only be made up to ${resource.maxAdvanceDays} days in advance`,
+    };
+  }
 
   try {
     const rows = await client.execute<BookingRow>(sql`
