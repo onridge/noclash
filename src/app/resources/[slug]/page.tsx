@@ -7,11 +7,11 @@ import { resources } from "@/db/schema";
 import {
   dayWindow,
   formatDayHeading,
-  formatTimeUtc,
   parseDateParam,
   shiftDate,
 } from "@/lib/scheduling/day-window";
 import { BookingForm } from "@/components/booking-form";
+import { LocalTimeRange } from "@/components/local-time-range";
 
 export default async function ResourceDetailPage({
   params,
@@ -42,7 +42,8 @@ export default async function ResourceDetailPage({
   return (
     <main className="px-4 sm:px-6 py-6">
       <p className="text-xs uppercase tracking-wide text-ink-muted mb-1">
-        {resource.timezone} (times shown in UTC)
+        Times shown in your local time — resource operates on{" "}
+        {resource.timezone}
       </p>
       <h1 className="font-display text-3xl sm:text-4xl text-ink">
         {resource.name}
@@ -79,10 +80,11 @@ export default async function ResourceDetailPage({
               key={booking.id}
               className="flex items-center justify-between gap-3 py-3 border-b border-rule text-ink"
             >
-              <span className="font-mono text-lg tabular-nums">
-                {formatTimeUtc(booking.startsAt)} &ndash;{" "}
-                {formatTimeUtc(booking.endsAt)}
-              </span>
+              <LocalTimeRange
+                start={booking.startsAt}
+                end={booking.endsAt}
+                resourceTimezone={resource.timezone}
+              />
               {booking.notes && (
                 <span className="text-sm text-ink-muted">{booking.notes}</span>
               )}
@@ -91,7 +93,10 @@ export default async function ResourceDetailPage({
         </ul>
       )}
 
-      <BookingForm resourceId={resource.id} />
+      <BookingForm
+        resourceId={resource.id}
+        resourceTimezone={resource.timezone}
+      />
     </main>
   );
 }

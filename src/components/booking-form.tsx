@@ -6,7 +6,8 @@ import {
   createBookingFromForm,
   type BookingFormState,
 } from "@/actions/bookings";
-import { formatDayHeading, formatTimeUtc } from "@/lib/scheduling/day-window";
+import { formatDayHeading } from "@/lib/scheduling/day-window";
+import { LocalTimeRange } from "./local-time-range";
 
 const initialState: BookingFormState = { status: "idle" };
 
@@ -14,7 +15,13 @@ const inputClassName =
   "border border-rule bg-transparent px-3 py-2 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-paper";
 const labelClassName = "flex flex-col gap-1.5 text-xs text-ink-muted";
 
-export function BookingForm({ resourceId }: { resourceId: string }) {
+export function BookingForm({
+  resourceId,
+  resourceTimezone,
+}: {
+  resourceId: string;
+  resourceTimezone: string;
+}) {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(
     createBookingFromForm,
@@ -121,11 +128,19 @@ export function BookingForm({ resourceId }: { resourceId: string }) {
       )}
 
       {state.status === "success" && (
-        <p className="text-sm text-accent">
-          Booked {formatDayHeading(state.booking.startsAt.toISOString().slice(0, 10))}
-          , {formatTimeUtc(state.booking.startsAt)} –{" "}
-          {formatTimeUtc(state.booking.endsAt)}
-        </p>
+        <div className="flex flex-col gap-1">
+          <p className="text-sm text-accent">
+            Booked{" "}
+            {formatDayHeading(
+              state.booking.startsAt.toISOString().slice(0, 10),
+            )}
+          </p>
+          <LocalTimeRange
+            start={state.booking.startsAt}
+            end={state.booking.endsAt}
+            resourceTimezone={resourceTimezone}
+          />
+        </div>
       )}
     </form>
   );
