@@ -1,5 +1,6 @@
-import { authWithGithub, signOut } from "@/actions/auth";
+import { signOut } from "@/actions/auth";
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 
 export const Nav = async () => {
   const supabase = await createClient();
@@ -22,14 +23,12 @@ export const Nav = async () => {
           </button>
         </form>
       ) : (
-        <form action={authWithGithub}>
-          <button
-            type="submit"
-            className="text-sm text-accent underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
-          >
-            Sign in with GitHub
-          </button>
-        </form>
+        <Link
+          href="/sign-in"
+          className="text-sm text-accent underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+        >
+          Sign in
+        </Link>
       )}
     </header>
   );
