@@ -206,6 +206,68 @@ describe("bookings RLS", () => {
       asAnon((tx) => tx`SELECT id FROM bookings WHERE resource_id = ${resourceId}`),
     ).rejects.toMatchObject({ code: "42501" });
   });
+
+  it("rejects a user cancelling someone else's booking", async () => {
+    const ownerId = randomUUID();
+    const userA = randomUUID();
+    const userB = randomUUID();
+    const resourceId = await insertResource(ownerId);
+    const bookingId = await insertBooking(resourceId, userA);
+
+    const rows = await asUser(userB, (tx) => tx`
+      UPDATE bookings SET status = 'cancelled' WHERE id = ${bookingId} RETURNING id
+    `);
+
+    expect(rows).toHaveLength(0);
+  });
+
+  it("lets a user cancel their own booking", async () => {
+    const ownerId = randomUUID();
+    const userA = randomUUID();
+    const resourceId = await insertResource(ownerId);
+    const bookingId = await insertBooking(resourceId, userA);
+
+    const rows = await asUser(userA, (tx) => tx`
+      UPDATE bookings SET status = 'cancelled' WHERE id = ${bookingId}
+      RETURNING id, status
+    `);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.status).toBe("cancelled");
+  });
+
+  it("rejects a resource owner cancelling a booking made by someone else", async () => {
+    // Deliberately narrower than the read policy: "their own bookings"
+    // means the booker, not whoever owns the resource.
+    const ownerId = randomUUID();
+    const someoneElse = randomUUID();
+    const resourceId = await insertResource(ownerId);
+    const bookingId = await insertBooking(resourceId, someoneElse);
+
+    const rows = await asUser(ownerId, (tx) => tx`
+      UPDATE bookings SET status = 'cancelled' WHERE id = ${bookingId} RETURNING id
+    `);
+
+    expect(rows).toHaveLength(0);
+  });
+
+  it("rejects changing a booking's time through the cancel policy", async () => {
+    // The UPDATE grant is column-scoped to status/cancelled_at — this
+    // proves it's a real restriction, not just decorative, by trying to
+    // slip an unrelated column through the same policy.
+    const ownerId = randomUUID();
+    const userA = randomUUID();
+    const resourceId = await insertResource(ownerId);
+    const bookingId = await insertBooking(resourceId, userA);
+
+    await expect(
+      asUser(userA, (tx) => tx`
+        UPDATE bookings
+        SET during = '[2026-08-11 10:00+00,2026-08-11 11:00+00)'::tstzrange
+        WHERE id = ${bookingId}
+      `),
+    ).rejects.toMatchObject({ code: "42501" });
+  });
 });
 
 describe("booking_events RLS", () => {
