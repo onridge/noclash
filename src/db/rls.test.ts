@@ -99,6 +99,57 @@ describe("resources RLS", () => {
       `),
     ).resolves.toBeDefined();
   });
+
+  it("rejects updating a resource the caller doesn't own", async () => {
+    const ownerId = randomUUID();
+    const someoneElse = randomUUID();
+    const resourceId = await insertResource(ownerId);
+
+    const rows = await asUser(someoneElse, (tx) => tx`
+      UPDATE resources SET name = 'Renamed' WHERE id = ${resourceId} RETURNING id
+    `);
+
+    // An UPDATE whose USING clause matches no rows isn't a Postgres
+    // error — it just updates zero rows. That's still full protection
+    // (the name never changes), just a different shape of assertion
+    // than the INSERT case above.
+    expect(rows).toHaveLength(0);
+  });
+
+  it("allows the owner to update their own resource", async () => {
+    const ownerId = randomUUID();
+    const resourceId = await insertResource(ownerId);
+
+    const rows = await asUser(ownerId, (tx) => tx`
+      UPDATE resources SET name = 'Renamed' WHERE id = ${resourceId} RETURNING id, name
+    `);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.name).toBe("Renamed");
+  });
+
+  it("rejects deleting a resource the caller doesn't own", async () => {
+    const ownerId = randomUUID();
+    const someoneElse = randomUUID();
+    const resourceId = await insertResource(ownerId);
+
+    const rows = await asUser(someoneElse, (tx) => tx`
+      DELETE FROM resources WHERE id = ${resourceId} RETURNING id
+    `);
+
+    expect(rows).toHaveLength(0);
+  });
+
+  it("allows the owner to delete their own resource", async () => {
+    const ownerId = randomUUID();
+    const resourceId = await insertResource(ownerId);
+
+    const rows = await asUser(ownerId, (tx) => tx`
+      DELETE FROM resources WHERE id = ${resourceId} RETURNING id
+    `);
+
+    expect(rows).toHaveLength(1);
+  });
 });
 
 describe("bookings RLS", () => {
