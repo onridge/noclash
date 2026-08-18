@@ -300,3 +300,47 @@ describe("booking_events RLS", () => {
     expect(unrelatedRows).toHaveLength(0);
   });
 });
+
+describe("public_booking_windows view", () => {
+  it("lets anon read a confirmed booking's window", async () => {
+    const ownerId = randomUUID();
+    const resourceId = await insertResource(ownerId);
+    await insertBooking(resourceId, randomUUID());
+
+    const rows = await asAnon<{ resource_id: string; starts_at: Date; ends_at: Date }[]>(
+      (tx) => tx`
+        SELECT resource_id, starts_at, ends_at
+        FROM public_booking_windows
+        WHERE resource_id = ${resourceId}
+      `,
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.resource_id).toBe(resourceId);
+  });
+
+  it("excludes cancelled bookings", async () => {
+    const ownerId = randomUUID();
+    const resourceId = await insertResource(ownerId);
+    const bookingId = await insertBooking(resourceId, randomUUID());
+    await db.execute(sql`UPDATE bookings SET status = 'cancelled' WHERE id = ${bookingId}`);
+
+    const rows = await asAnon(
+      (tx) => tx`SELECT resource_id FROM public_booking_windows WHERE resource_id = ${resourceId}`,
+    );
+
+    expect(rows).toHaveLength(0);
+  });
+
+  it("has no column exposing who booked it — not just access-denied, the data isn't there", async () => {
+    const ownerId = randomUUID();
+    const resourceId = await insertResource(ownerId);
+    await insertBooking(resourceId, randomUUID());
+
+    await expect(
+      asAnon(
+        (tx) => tx`SELECT user_id FROM public_booking_windows WHERE resource_id = ${resourceId}`,
+      ),
+    ).rejects.toMatchObject({ code: "42703" });
+  });
+});
