@@ -57,6 +57,13 @@
       "when": 1786600000000,
       "tag": "0007_bookings_cancel_policy",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1786700000000,
+      "tag": "0008_public_booking_windows_view",
+      "breakpoints": true
     }
   ]
 }
